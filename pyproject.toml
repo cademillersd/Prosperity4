@@ -1,0 +1,23 @@
+[project]
+name = "prosperity4"
+version = "0.1.0"
+description = "IMC Prosperity 4 package management, data evaluation, backtest engine, and trading strategies."
+authors = [
+    {name = "Cade Miller"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "prosperity4btest (>=0.4.2,<0.5.0)",
+    "numpy (>=2.4.4,<3.0.0)",
+    "pandas (>=3.0.2,<4.0.0)",
+    "matplotlib (>=3.10.8,<4.0.0)",
+    "jupyter (>=1.1.1,<2.0.0)",
+    "scipy (>=1.17.1,<2.0.0)",
+    "scikit-learn (>=1.8.0,<2.0.0)",
+    "jsonpickle (>=4.1.1,<5.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

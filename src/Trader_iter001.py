@@ -1,10 +1,5 @@
-from datamodel import OrderDepth, UserId, TradingState, Order
-from typing import List
-import string
-
+from typing import List, Any
 import json
-from typing import Any
-
 from datamodel import Listing, Observation, Order, OrderDepth, ProsperityEncoder, Symbol, Trade, TradingState
 
 
@@ -151,15 +146,12 @@ class Trader:
         print("traderData: " + state.traderData)
         print("Observations: " + str(state.observations))
 
-        # For logger
-        trader_data = "trader_iter001"
-
         # Orders to be placed on exchange matching engine
         result = {}
         for product in state.order_depths:
             order_depth: OrderDepth = state.order_depths[product]
             orders: List[Order] = []
-            acceptable_price = 10
+            acceptable_price = 10000
             print("Acceptable price : " + str(acceptable_price))
             print("Buy Order depth : " + str(len(order_depth.buy_orders)) + ", Sell order depth : " + str(len(order_depth.sell_orders)))
     
@@ -183,6 +175,6 @@ class Trader:
         
         # Sample conversion request. Check more details below. 
         conversions = 1
-        logger.flush(state, result, conversions, trader_data)
+        logger.flush(state, result, conversions, traderData)
 
         return result, conversions, traderData

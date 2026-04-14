@@ -134,12 +134,6 @@ class Logger:
 
 logger = Logger()
 
-import json
-from typing import Dict, List
-
-import json
-from typing import Dict, List
-
 class Trader:
     def bid(self):
         return 15
@@ -154,8 +148,8 @@ class Trader:
 
         # ---------- config ----------
         POSITION_LIMITS = {
-            "TOMATOES": 20,
-            "EMERALDS": 20,
+            "TOMATOES": 80,
+            "EMERALDS": 80,
         }
 
         EMERALDS_FAIR = 10000

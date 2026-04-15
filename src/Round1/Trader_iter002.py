@@ -2,7 +2,8 @@ from typing import List, Any, Dict, Optional
 import json
 import numpy as np
 from datamodel import Listing, Observation, Order, OrderDepth, ProsperityEncoder, Symbol, Trade, TradingState
-
+## pepper: max buy and hold
+## osmium: mean reversion market making
 
 class Logger:
     def __init__(self) -> None:
@@ -386,8 +387,8 @@ class Trader:
     # =========================
     def run(self, state: TradingState):
         POSITION_LIMITS = {
-        "INTARIAN_PEPPER_ROOT": 80,
-        "ASH_COATED_OSMIUM": 80,
+            "INTARIAN_PEPPER_ROOT": 80,
+            "ASH_COATED_OSMIUM": 80,
         }
 
         # Persistent state load
@@ -420,50 +421,57 @@ class Trader:
                 continue
 
             _, _, mid_price = mid_data
-
-            # Keep a much longer history so pepper trend estimation can use 1000 points
             self.update_price_history(price_history, product, mid_price, max_len=1200)
 
             # =========================
             # Product 1: INTARIAN_PEPPER_ROOT
-            # Consistent upward trend:
-            # estimate slope over last up to 1000 mids and use next expected value
-            # as the fair value for constant-mean market making.
+            # Immediate max buy-and-hold:
+            # aggressively lift asks until position limit is reached,
+            # then stop trading.
             # =========================
             if product == "INTARIAN_PEPPER_ROOT":
+                position = state.position.get(product, 0)
+                buy_capacity = POSITION_LIMITS[product] - position
                 hist = price_history.get(product, [])
 
-                if len(hist) >= 2:
-                    # Shorter lookback than 1000 so fair value reacts faster
-                    # to the persistent upward drift
-                    lookback = min(250, len(hist))
-                    y = np.array(hist[-lookback:], dtype=float)
-                    x = np.arange(lookback, dtype=float)
+                if buy_capacity > 0 and len(order_depth.sell_orders) > 0:
+                    # Derive fair value from midprice history
+                    if len(hist) >= 2:
+                        lookback = min(50, len(hist))
+                        y = np.array(hist[-lookback:], dtype=float)
+                        x = np.arange(lookback, dtype=float)
 
-                    # Linear slope estimate
-                    slope, intercept = np.polyfit(x, y, 1)
+                        slope, intercept = np.polyfit(x, y, 1)
 
-                    # Expected value a few ticks ahead on the trend line
-                    forecast_horizon = 8
-                    fair_value = intercept + slope * (lookback - 1 + forecast_horizon)
-                else:
-                    fair_value = mid_price
+                        # Forecast a little ahead, since price is trending upward
+                        forecast_horizon = 3
+                        fair_value = intercept + slope * (lookback - 1 + forecast_horizon)
+                    else:
+                        fair_value = mid_price
 
-                orders = self.market_make_constant_mean(
-                    product=product,
-                    state=state,
-                    order_depth=order_depth,
-                    fair_value=float(fair_value),
-                    pos_limit=POSITION_LIMITS[product],
-                    half_spread=4,
-                    lot_size=10,
-                    inv_skew_per_unit=0.01,
-                )
+                    max_acceptable_price = fair_value + 7
+                    logger.print(max_acceptable_price)
+
+                    # Option 1: patient but can take multiple eligible asks
+                    for ask_price in sorted(order_depth.sell_orders.keys()):
+                        if ask_price > max_acceptable_price:
+                            break
+
+                        ask_volume = -order_depth.sell_orders[ask_price]
+                        if ask_volume <= 0:
+                            continue
+
+                        qty = min(buy_capacity, ask_volume)
+                        if qty > 0:
+                            orders.append(Order(product, ask_price, qty))
+                            buy_capacity -= qty
+
+                        if buy_capacity <= 0:
+                            break
 
             # =========================
             # Product 2: ASH_COATED_OSMIUM
-            # Volatile mean reversion around 10000:
-            # use direct mean-reverting market making around fixed anchor.
+            # Volatile mean reversion around 10000
             # =========================
             elif product == "ASH_COATED_OSMIUM":
                 orders = self.market_make_mean_reverting(
